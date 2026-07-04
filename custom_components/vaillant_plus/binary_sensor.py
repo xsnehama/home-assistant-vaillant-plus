@@ -39,70 +39,70 @@ class VaillantBinarySensorDescription(
 BINARY_SENSOR_DESCRIPTIONS = (
     VaillantBinarySensorDescription(
         key="Circulation_Enable",
-        name="Circulation",
+        name="循环",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=1,
     ),
     VaillantBinarySensorDescription(
         key="Heating_Enable",
-        name="Heating",
+        name="采暖",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=1,
     ),
     VaillantBinarySensorDescription(
         key="WarmStar_Tank_Loading_Enable",
-        name="WarmStar tank loading",
+        name="水箱加热",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=1,
     ),
     VaillantBinarySensorDescription(
         key="Enabled_Heating",
-        name="Heating boiler",
+        name="采暖锅炉",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=1,
     ),
     VaillantBinarySensorDescription(
         key="Enabled_DHW",
-        name="Domestic hot water",
+        name="生活热水",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=1,
     ),
     VaillantBinarySensorDescription(
         key="BMU_Platform",
-        name="BMU platform",
+        name="BMU 平台",
         # device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=1,
     ),
     VaillantBinarySensorDescription(
         key="Weather_compensation",
-        name="Weather compensation",
+        name="天气补偿",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=1,
     ),
     VaillantBinarySensorDescription(
         key="RF_Status",
-        name="EBus status",
+        name="EBus 状态",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=3,
     ),
     VaillantBinarySensorDescription(
         key="Boiler_info3_bit0",
-        name="Boiler heating demand",
+        name="锅炉采暖需求",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=True,
     ),
     VaillantBinarySensorDescription(
         key="Boiler_info5_bit4",
-        name="Boiler need refill water",
+        name="锅炉需要补水",
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=True,
@@ -168,9 +168,15 @@ class VaillantBinarySensorEntity(VaillantEntity, BinarySensorEntity):
     @callback
     def update_from_latest_data(self, data: dict[str, Any]) -> None:
         """Update the entity from the latest data."""
-        self._attr_available = data.get(self.entity_description.key) is not None
+        if self.entity_description.key not in data:
+            return
 
         value: Any = data.get(self.entity_description.key)
+        self._attr_available = value is not None
+
+        if value is None:
+            return
+
         if self.entity_description.key == "RF_Status":
             self._attr_is_on = value == 3
         elif self.entity_description.key == "Boiler_info3_bit0":

@@ -115,8 +115,10 @@ class VaillantWaterHeater(VaillantEntity, WaterHeaterEntity):
         """Return current operation ie. eco, electric, performance, ..."""
         value = self.get_device_attr("Enabled_DHW")
         if value is None:
+            value = self.get_device_attr("WarmStar_Tank_Loading_Enable")
+        if value is None:
             return None
-        if value == 1:
+        if value == 1 or value is True:
             return WATER_HEATER_ON
         return WATER_HEATER_OFF
 

@@ -15,7 +15,9 @@ from .client import VaillantClient
 from .const import (
     API_CLIENT,
     CONF_DID,
+    CONF_PASSWORD,
     CONF_TOKEN,
+    CONF_USERNAME,
     DISPATCHERS,
     DOMAIN,
     EVT_TOKEN_UPDATED,
@@ -43,10 +45,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Vaillant Plus from a config entry."""
-
     token = Token.deserialize(entry.data.get(CONF_TOKEN))
     device_id = entry.data.get(CONF_DID)
-    client = VaillantClient(hass, token, device_id)
+    username = entry.data.get(CONF_USERNAME)
+    password = entry.data.get(CONF_PASSWORD)
+    client = VaillantClient(hass, token, device_id, username, password)
 
     async def close_client(_):
         await client.close()

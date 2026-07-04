@@ -51,7 +51,10 @@ async def async_setup_entry(
     def async_new_climate(device_attrs: dict[str, Any]):
         _LOGGER.debug("New climate found")
         if "climate" not in added_entities:
-            if device_attrs.get("Enabled_Heating") is not None:
+            if (
+                device_attrs.get("Enabled_Heating") is not None
+                or device_attrs.get("Heating_Enable") is not None
+            ):
                 new_devices = [VaillantClimate(client)]
                 async_add_devices(new_devices)
                 added_entities.append("climate")
@@ -127,7 +130,11 @@ class VaillantClimate(VaillantEntity, ClimateEntity):
         """
 
         # TODO whether support HVACMode.AUTO
-        if self.get_device_attr("Enabled_Heating") == 1:
+        enabled_heating = self.get_device_attr("Enabled_Heating")
+        if enabled_heating is None:
+            enabled_heating = self.get_device_attr("Heating_Enable")
+
+        if enabled_heating == 1 or enabled_heating is True:
             return HVACMode.HEAT
 
         return HVACMode.OFF
@@ -138,7 +145,11 @@ class VaillantClimate(VaillantEntity, ClimateEntity):
         Return the currently running HVAC action.
         """
 
-        if self.get_device_attr("Enabled_Heating") == 0:
+        enabled_heating = self.get_device_attr("Enabled_Heating")
+        if enabled_heating is None:
+            enabled_heating = self.get_device_attr("Heating_Enable")
+
+        if enabled_heating == 0 or enabled_heating is False:
             return HVACAction.OFF
 
         try:

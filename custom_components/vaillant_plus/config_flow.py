@@ -70,6 +70,8 @@ class VaillantPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "invalid_auth"
         else:
             self._cloud_token = user_info
+            self._username = user_input[CONF_USERNAME]
+            self._password = user_input[CONF_PASSWORD]
             device_list = await client.get_device_list()
             if len(device_list) == 0:
                 errors["base"] = "no_devices"
@@ -128,6 +130,8 @@ class VaillantPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data={
                     CONF_DID: unique_id,
                     CONF_TOKEN: self._cloud_token.serialize(),
+                    CONF_USERNAME: self._username,
+                    CONF_PASSWORD: self._password,
                 },
             )
 

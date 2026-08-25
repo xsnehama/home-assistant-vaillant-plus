@@ -1,4 +1,21 @@
 # home-assistant-vaillant-plus
+> [!IMPORTANT]
+> ## 中文增强维护版说明
+>
+> 本仓库是 [daxingplay/home-assistant-vaillant-plus](https://github.com/daxingplay/home-assistant-vaillant-plus) 的公开 Fork，遵循原项目的 Apache-2.0 许可证并保留原作者版权信息。本分支不是从零重写，而是在上游基础上，针对实际 Home Assistant 环境中影响日常使用的问题进行修复和增强。
+>
+> 相比上游，本分支目前包含以下关键改进：
+>
+> - **增强登录稳定性**：增加主动刷新令牌、认证失效后重新登录，以及 WebSocket 自动重连，降低长期运行后设备失联的概率。
+> - **修复实体可用性判断**：连接断开时实体会正确显示为不可用，避免把缓存的历史数据误认为实时状态。
+> - **修复二进制传感器状态**：按设备协议中的明确状态值判断开关状态，避免简单布尔转换造成误报。
+> - **改善数值统计兼容性**：运行时间、功率、转速等保持为真正的数值，并补充单位和状态类别，便于 Home Assistant 统计、图表及自动化比较。
+> - **完善诊断信息**：兼容更多诊断字段，补充常见故障码中文说明，并将“未接传感器”等情况作为状态属性表达。
+> - **修复生活热水温度显示**：过滤无效的水箱温度，在缺少有效读数时按目标温度和出水温度合理回退。
+> - **优化日志级别**：将高频调试信息降为 `debug`，保留真正需要关注的异常，减少日志膨胀和磁盘写入。
+>
+> 上述修改已在本 Fork 维护者自己的 Home Assistant 与威能设备环境中实际运行验证。不同设备型号、固件和区域服务可能存在差异，更新前请保留备份。
+
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
 [![Coverage][coverage-shield]][coverage]
@@ -70,3 +87,4 @@ Component built with integration_blueprint.
 [user_profile]: https://github.com/daxingplay
 [download-all]: https://img.shields.io/github/downloads/daxingplay/home-assistant-vaillant-plus/total?style=flat-square
 [download-latest]: https://img.shields.io/github/downloads/daxingplay/home-assistant-vaillant-plus/latest/total?style=flat-square
+

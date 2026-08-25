@@ -7,7 +7,6 @@ import asyncio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.typing import ConfigType
 from vaillant_plus_cn_api import Token
@@ -16,30 +15,22 @@ from .client import VaillantClient
 from .const import (
     API_CLIENT,
     CONF_DID,
+    CONF_PASSWORD,
     CONF_TOKEN,
+    CONF_USERNAME,
     DISPATCHERS,
     DOMAIN,
     EVT_TOKEN_UPDATED,
 )
 
+# TODO List the platforms that you want to support.
+# For your initial PR, limit it to 1 platform.
 PLATFORMS: list[Platform] = [
     Platform.CLIMATE,
     Platform.BINARY_SENSOR,
     Platform.SENSOR,
     Platform.WATER_HEATER,
 ]
-
-# This integration can only be configured through the config flow (UI)
-# cv.config_entry_only_config_schema was added in HA 2022.6
-# Fall back to empty_config_schema or a basic schema for older versions
-if hasattr(cv, "config_entry_only_config_schema"):
-    CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
-elif hasattr(cv, "empty_config_schema"):
-    CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
-else:
-    # For very old HA versions, define a basic schema that accepts but ignores config
-    import voluptuous as vol
-    CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,10 +45,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Vaillant Plus from a config entry."""
-
     token = Token.deserialize(entry.data.get(CONF_TOKEN))
     device_id = entry.data.get(CONF_DID)
-    client = VaillantClient(hass, token, device_id)
+    username = entry.data.get(CONF_USERNAME)
+    password = entry.data.get(CONF_PASSWORD)
+    client = VaillantClient(hass, token, device_id, username, password)
 
     async def close_client(_):
         await client.close()
@@ -99,8 +91,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ):
             try:
                 await hass.data[DOMAIN][API_CLIENT][entry.entry_id].close()
-            except:
-                pass
+            except Exception as error:
+                _LOGGER.debug("Failed to close Vaillant client during unload: %s", error)
         hass.data[DOMAIN][API_CLIENT].pop(entry.entry_id)
 
     device_id = entry.data.get(CONF_DID)

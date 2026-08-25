@@ -60,7 +60,7 @@ class VaillantEntity(Entity):
     @property
     def available(self) -> bool:
         """Return True if the entity has device data from an active connection."""
-        return self._client.is_connected and len(self.device_attrs) > 0
+        return self._client.is_connected and bool(self.device_attrs)
 
     @property
     def device_info(self) -> DeviceInfo:

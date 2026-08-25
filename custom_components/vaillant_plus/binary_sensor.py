@@ -53,21 +53,21 @@ BINARY_SENSOR_DESCRIPTIONS = (
     ),
     VaillantBinarySensorDescription(
         key="WarmStar_Tank_Loading_Enable",
-        name="水箱加热",
+        name="热水储水网关加热中",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=1,
     ),
     VaillantBinarySensorDescription(
         key="Enabled_Heating",
-        name="采暖锅炉",
+        name="壁挂炉采暖启动",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=1,
     ),
     VaillantBinarySensorDescription(
         key="Enabled_DHW",
-        name="生活热水",
+        name="生活热水启动",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=1,
@@ -81,28 +81,28 @@ BINARY_SENSOR_DESCRIPTIONS = (
     ),
     VaillantBinarySensorDescription(
         key="Weather_compensation",
-        name="天气补偿",
+        name="气候补偿",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=1,
     ),
     VaillantBinarySensorDescription(
         key="RF_Status",
-        name="EBus 状态",
+        name="eBUS 状态",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=3,
     ),
     VaillantBinarySensorDescription(
         key="Boiler_info3_bit0",
-        name="锅炉采暖需求",
+        name="壁挂炉采暖需求",
         device_class=BinarySensorDeviceClass.RUNNING,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=True,
     ),
     VaillantBinarySensorDescription(
         key="Boiler_info5_bit4",
-        name="锅炉需要补水",
+        name="壁挂炉需补水",
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
         on_state=True,
@@ -170,10 +170,8 @@ class VaillantBinarySensorEntity(VaillantEntity, BinarySensorEntity):
         """Update the entity from the latest data."""
         if self.entity_description.key not in data:
             return
-
         value: Any = data.get(self.entity_description.key)
         self._attr_available = value is not None
-
         if value is None:
             return
 

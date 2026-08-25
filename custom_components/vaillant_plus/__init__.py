@@ -91,8 +91,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ):
             try:
                 await hass.data[DOMAIN][API_CLIENT][entry.entry_id].close()
-            except:
-                pass
+            except Exception as error:
+                _LOGGER.debug("Failed to close Vaillant client during unload: %s", error)
         hass.data[DOMAIN][API_CLIENT].pop(entry.entry_id)
 
     device_id = entry.data.get(CONF_DID)

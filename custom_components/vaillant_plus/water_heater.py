@@ -1,4 +1,4 @@
-"""The Vaillant Plus climate platform."""
+"""The Vaillant Plus water heater platform."""
 from __future__ import annotations
 
 import logging
@@ -77,6 +77,18 @@ async def async_setup_entry(
 class VaillantWaterHeater(VaillantEntity, WaterHeaterEntity):
     """Vaillant vSMART Water Heater."""
 
+    def _dhw_enabled_value(self) -> Any:
+        """Return the current DHW enable value from known API variants."""
+        for attr in (
+            "WarmStar_Tank_Loading_Enable",
+            "Enabled_DHW",
+            "DHW_switch",
+        ):
+            value = self.get_device_attr(attr)
+            if value is not None:
+                return value
+        return None
+
     @property
     def should_poll(self) -> bool:
         return False
@@ -113,12 +125,10 @@ class VaillantWaterHeater(VaillantEntity, WaterHeaterEntity):
     @property
     def current_operation(self) -> str | None:
         """Return current operation ie. eco, electric, performance, ..."""
-        value = self.get_device_attr("Enabled_DHW")
-        if value is None:
-            value = self.get_device_attr("WarmStar_Tank_Loading_Enable")
+        value = self._dhw_enabled_value()
         if value is None:
             return None
-        if value == 1 or value is True:
+        if value in (1, True, "1", "true", "True", "on"):
             return WATER_HEATER_ON
         return WATER_HEATER_OFF
 
@@ -130,14 +140,31 @@ class VaillantWaterHeater(VaillantEntity, WaterHeaterEntity):
     @property
     def current_temperature(self) -> float:
         """Return the current dhw temperature."""
+        value = self.get_device_attr("Tank_temperature")
+        if value is not None and float(value) < 127.0:
+            return value
+        # DHW not active or no tank sensor - show target as fallback
+        target = self._dhw_target_temperature_value()
+        if target is not None:
+            return target
+        flow = self.get_device_attr("Flow_temperature")
+        if flow is not None:
+            return flow
+        return value
 
-        return self.get_device_attr("Flow_temperature")
+    def _dhw_target_temperature_value(self) -> Any:
+        """Return the current target DHW temperature from known API variants."""
+        for attr in ("Current_DHW_Setpoint", "DHW_readSetPoint", "DHW_setpoint"):
+            value = self.get_device_attr(attr)
+            if value is not None:
+                return value
+        return None
 
     @property
     def target_temperature(self) -> float:
         """Return the targeted dhw temperature. Current_DHW_Setpoint or DHW_setpoint"""
 
-        return self.get_device_attr("DHW_setpoint")
+        return self._dhw_target_temperature_value()
 
     @property
     def target_temperature_high(self) -> float | None:

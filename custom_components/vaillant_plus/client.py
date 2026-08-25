@@ -34,6 +34,7 @@ TOKEN_RECONNECT_MAX_DELAY = 5 * 60
 
 class AuthState(Enum):
     INITED = "INITED"
+    CONNECTING = "CONNECTING"
     HEALTHY = "HEALTHY"
     EXPIRING = "EXPIRING"
     REFRESHING = "REFRESHING"
@@ -84,9 +85,27 @@ class VaillantClient:
     def auth_state(self) -> AuthState:
         return self._auth_state
 
+    @property
+    def is_connected(self) -> bool:
+        """Return whether the websocket is actively subscribed."""
+        return (
+            self._auth_state is AuthState.HEALTHY
+            and self._websocket_client is not None
+            and self._websocket_client.state == "subscribed"
+        )
+
     def _set_auth_state(self, state: AuthState) -> None:
         self._auth_state = state
         self._state = state.value
+
+    def _notify_state_changed(self) -> None:
+        """Refresh entity availability without discarding cached values."""
+        if self._device is not None and self._device_attrs:
+            async_dispatcher_send(
+                self._hass,
+                EVT_DEVICE_UPDATED.format(self._device.id),
+                self._device_attrs.copy(),
+            )
 
     def _reset_reconnect_delay(self) -> None:
         self._reconnect_delay = TOKEN_RECONNECT_BASE_DELAY
@@ -102,6 +121,9 @@ class VaillantClient:
         self._sleep_task = asyncio.create_task(asyncio.sleep(delay))
 
     async def _connect(self) -> None:
+        self._set_auth_state(AuthState.CONNECTING)
+        self._notify_state_changed()
+
         device_list = await self._api_client.get_device_list()
         filtered_device_list = [device for device in device_list if device.id == self._device_id]
         if len(filtered_device_list) == 0:
@@ -112,14 +134,16 @@ class VaillantClient:
         if self._websocket_client is not None:
             try:
                 await self._websocket_client.close()
-            except:
-                pass
+            except Exception as error:
+                _LOGGER.debug("Failed to close previous websocket: %s", error)
             finally:
                 self._websocket_client = None
 
         @callback
         def device_connected(device_attrs: dict[str, Any]):
             self._device_attrs = device_attrs.copy()
+            self._set_auth_state(AuthState.HEALTHY)
+            self._reset_reconnect_delay()
             async_dispatcher_send(
                 self._hass, EVT_DEVICE_CONNECTED.format(self._device_id), device_attrs.copy()
             )
@@ -143,8 +167,9 @@ class VaillantClient:
         self._websocket_client.on_update(device_update)
 
         await self._websocket_client.connect()
-        self._set_auth_state(AuthState.HEALTHY)
-        self._reset_reconnect_delay()
+        if self._auth_state is not AuthState.CLOSED:
+            self._set_auth_state(AuthState.CONNECTING)
+            self._notify_state_changed()
 
     async def _get_token(self) -> None:
         if not self._username or not self._password:
@@ -250,12 +275,14 @@ class VaillantClient:
 
     async def close(self) -> None:
         """Close connection to cloud."""
+        self._set_auth_state(AuthState.CLOSED)
+        self._notify_state_changed()
+
         if self._websocket_client is not None:
             try:
                 await self._websocket_client.close()
             except Exception as error:
-                _LOGGER.exception(error)
-                pass
+                _LOGGER.exception("Failed to close websocket: %s", error)
 
         if self._sleep_task is not None:
             self._sleep_task.cancel()
@@ -268,9 +295,6 @@ class VaillantClient:
             self._token_refresh_handle.cancel()
             self._token_refresh_handle = None
 
-        self._set_auth_state(AuthState.CLOSED)
-        self._state = "CLOSED"
-
     async def control_device(self, attrs: dict[str, Any]) -> bool:
         """Send command to control device."""
         retry_times = 0
@@ -282,7 +306,7 @@ class VaillantClient:
                 await self._get_token()
                 await asyncio.sleep(retry_times * 5)
                 retry_times = retry_times + 1
-                _LOGGER.warning("Control device failed due to invaild token, retry %d time", retry_times)
+                _LOGGER.warning("Control device failed due to invalid token, retry %d time", retry_times)
 
         return False
 

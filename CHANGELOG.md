@@ -1,6 +1,11 @@
 # Changelog
 
 <!--next-version-placeholder-->
+## v1.4.0.post3 (2026-10-15)
+* Key the dispatcher bookkeeping and the token-update signal by `entry.entry_id`, so a second config entry can no longer unsubscribe the first entry's handles.
+* Take entity unique IDs, device identifiers and the device-update subscription from the configured device id, and omit device name/model until the cloud device object resolves.
+* Pass `verify_ssl` and `family` by name when creating the shared aiohttp session, keeping IPv4 without depending on positional arguments.
+
 ## v1.4.0.post2 (2026-10-15)
 * Keep a healthy websocket subscription during proactive authentication refresh and restore the normal refresh interval after successful recovery.
 * Add the Home Assistant reauthentication flow and unify authentication, network and exhausted-retry control errors.

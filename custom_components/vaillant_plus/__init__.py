@@ -56,7 +56,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.async_start_reauth(hass)
 
     client = VaillantClient(
-        hass, token, device_id, username, password, on_auth_failed=on_auth_failed
+        hass,
+        token,
+        device_id,
+        username,
+        password,
+        on_auth_failed=on_auth_failed,
+        entry_id=entry.entry_id,
     )
 
     async def close_client(_):
@@ -72,20 +78,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     unsub = async_dispatcher_connect(
         hass,
-        EVT_TOKEN_UPDATED.format(token.username),
+        EVT_TOKEN_UPDATED.format(entry.entry_id),
         on_token_update,
     )
 
-    hass.data[DOMAIN][DISPATCHERS].setdefault(device_id, [])
-    hass.data[DOMAIN][DISPATCHERS][device_id].append(unsub)
+    # Keyed by entry so a second config entry can never touch this one's handles.
+    dispatchers = hass.data[DOMAIN][DISPATCHERS].setdefault(entry.entry_id, [])
+    dispatchers.append(unsub)
 
     unsub_stop = hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, close_client)
-    hass.data[DOMAIN][DISPATCHERS][device_id].append(unsub_stop)
+    dispatchers.append(unsub_stop)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     task = hass.loop.create_task(client.start())
-    hass.data[DOMAIN][DISPATCHERS][device_id].append(task)
+    dispatchers.append(task)
 
     return True
 
@@ -103,8 +110,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 _LOGGER.debug("Failed to close Vaillant client during unload: %s", error)
         hass.data[DOMAIN][API_CLIENT].pop(entry.entry_id)
 
-    device_id = entry.data.get(CONF_DID)
-    dispatchers = hass.data[DOMAIN][DISPATCHERS].pop(device_id)
+    dispatchers = hass.data[DOMAIN][DISPATCHERS].pop(entry.entry_id, [])
     for unsub_or_task in dispatchers:
         if isinstance(unsub_or_task, asyncio.Task):
             unsub_or_task.cancel()

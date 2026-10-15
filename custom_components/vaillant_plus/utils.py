@@ -48,7 +48,12 @@ class VaillantApiClient(BaseVaillantApiClient):
                 await session.close()
 
 def get_aiohttp_session(hass):
-    if len(inspect.signature(aiohttp_client.async_get_clientsession).parameters) < 3:
-        return aiohttp_client.async_get_clientsession(hass)
-    else:
-        return aiohttp_client.async_get_clientsession(hass, True, socket.AF_INET)
+    # Keep IPv4 for the cloud session, but pass options by name so a future
+    # keyword-only signature cannot turn into a positional TypeError.
+    params = inspect.signature(aiohttp_client.async_get_clientsession).parameters
+    kwargs = {}
+    if "verify_ssl" in params:
+        kwargs["verify_ssl"] = True
+    if "family" in params:
+        kwargs["family"] = socket.AF_INET
+    return aiohttp_client.async_get_clientsession(hass, **kwargs)

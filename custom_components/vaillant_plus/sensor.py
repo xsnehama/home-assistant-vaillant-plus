@@ -482,7 +482,7 @@ class VaillantSensorEntity(VaillantEntity, SensorEntity):
     @property
     def unique_id(self) -> str | None:
         """Return a unique ID."""
-        return f"{self.device.id}_{self.entity_description.key}"
+        return f"{self.device_id}_{self.entity_description.key}"
 
     @property
     def extra_state_attributes(self) -> dict | None:

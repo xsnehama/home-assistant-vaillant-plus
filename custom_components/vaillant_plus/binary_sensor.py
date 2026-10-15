@@ -159,7 +159,7 @@ class VaillantBinarySensorEntity(VaillantEntity, BinarySensorEntity):
     @property
     def unique_id(self) -> str | None:
         """Return a unique ID."""
-        return f"{self.device.id}_{self.entity_description.key}"
+        return f"{self.device_id}_{self.entity_description.key}"
 
     @callback
     def update_from_latest_data(self, data: dict[str, Any]) -> None:

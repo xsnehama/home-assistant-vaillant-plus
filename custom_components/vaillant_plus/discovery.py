@@ -42,7 +42,8 @@ def async_register_discovery(
         unsub = async_dispatcher_connect(
             hass, signal.format(device_id), _handle_event
         )
-        hass.data[DOMAIN][DISPATCHERS][device_id].append(unsub)
+        # Signals stay per-device; the cleanup handles belong to the entry.
+        hass.data[DOMAIN][DISPATCHERS].setdefault(client.entry_id, []).append(unsub)
 
     _handle_event({})
 

@@ -98,7 +98,7 @@ class VaillantWaterHeater(VaillantEntity, WaterHeaterEntity):
     def unique_id(self) -> str:
         """Return a unique ID to use for this entity."""
 
-        return f"{self.device.id}_water_heater"
+        return f"{self.device_id}_water_heater"
 
     @property
     def name(self) -> str | None:

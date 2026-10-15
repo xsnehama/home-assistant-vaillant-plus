@@ -30,8 +30,13 @@ class VaillantEntity(Entity):
         return self._client.device_attrs
 
     @property
-    def device(self) -> Device:
+    def device(self) -> Device | None:
         return self._client.device
+
+    @property
+    def device_id(self) -> str:
+        """Configured id, safe even before the cloud device object exists."""
+        return self._client.device_id
 
     def get_device_attr(self, attr: str) -> Any:
         return self._client.device_attrs.get(attr)
@@ -48,7 +53,7 @@ class VaillantEntity(Entity):
 
         self.async_on_remove(
             async_dispatcher_connect(
-                self.hass, EVT_DEVICE_UPDATED.format(self.device.id), update
+                self.hass, EVT_DEVICE_UPDATED.format(self.device_id), update
             )
         )
 
@@ -72,14 +77,17 @@ class VaillantEntity(Entity):
     def device_info(self) -> DeviceInfo:
         """Return all device info available for this entity."""
 
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.device.id)},
-            name=self.device.product_name,
-            model=self.device.model,
+        info = DeviceInfo(
+            identifiers={(DOMAIN, self.device_id)},
             # sw_version=self.device.mcu_soft_version,
             # hw_version=self.device.mcu_hard_version,
             manufacturer="Vaillant",
         )
+        device = self.device
+        if device is not None:
+            info["name"] = device.product_name
+            info["model"] = device.model
+        return info
 
     @callback
     def update_from_latest_data(self, data: dict[str, Any]) -> None:

@@ -43,12 +43,14 @@ class VaillantClient:
 
     def __init__(self, hass: HomeAssistant, token: Token, device_id: str,
                  username: str | None = None, password: str | None = None,
-                 *, on_auth_failed: Callable[[], None] | None = None) -> None:
+                 *, on_auth_failed: Callable[[], None] | None = None,
+                 entry_id: str) -> None:
         self._hass = hass
         self._device_id = device_id
         self._username = username or token.username
         self._password = password or token.password
         self._on_auth_failed = on_auth_failed
+        self._entry_id = entry_id
         self._device_attrs: dict[str, Any] = {}
         self._device: Device | None = None
         self._token = token
@@ -75,6 +77,16 @@ class VaillantClient:
     @property
     def device(self) -> Device | None:
         return self._device
+
+    @property
+    def device_id(self) -> str:
+        """Configured id; never depends on a live cloud object."""
+        return self._device_id
+
+    @property
+    def entry_id(self) -> str:
+        """Owning config entry; scopes cleanup bookkeeping per entry."""
+        return self._entry_id
 
     @property
     def device_attrs(self) -> dict[str, Any]:
@@ -260,7 +272,7 @@ class VaillantClient:
             self._token = token
             self._api_client.update_token(token)
             self._token_last_refresh_monotonic = time.monotonic()
-            async_dispatcher_send(self._hass, EVT_TOKEN_UPDATED.format(token.username), token)
+            async_dispatcher_send(self._hass, EVT_TOKEN_UPDATED.format(self._entry_id), token)
             self._set_auth_state(AuthState.HEALTHY if self.is_connected else AuthState.CONNECTING)
             return True
 

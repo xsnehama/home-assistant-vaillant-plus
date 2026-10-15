@@ -87,7 +87,7 @@ class VaillantClimate(VaillantEntity, ClimateEntity):
     def unique_id(self) -> str:
         """Return a unique ID to use for this entity."""
 
-        return f"{self.device.id}_climate"
+        return f"{self.device_id}_climate"
 
     @property
     def name(self) -> str | None:

@@ -22,3 +22,5 @@ sh ops/deploy.sh --apply
 本仓库不收录 HA 配置、`.storage`、数据库、凭据或 HA 备份。配置另由 `/root/ha-config` 的白名单仓库维护。
 
 原有会话提交另保留于 `archive/session-20261015`。上游标签 `v1.2.5` 与 fork 原有同名标签指向不同提交；NAS 本地的普通版本标签均来自 upstream，fork 原始提交由 `origin/master` 和归档分支保留。不要把所有本地标签强推回 fork。
+
+维护分支的最终归档提交另以原会话提交为第二父提交，使重建图和原提交链均可从该分支追溯。GitHub 只推送维护分支；`evidence/c1` 到 `evidence/c7` 标签保留在 NAS 和离线 bundle，克隆后也可通过 provenance 中的完整提交号查看对应状态。

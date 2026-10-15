@@ -2,13 +2,16 @@
     "config": {
         "abort": {
             "already_configured": "Equipamento já configurado",
-            "reauth_successful": "Autenticação concluída com sucesso"
+            "reauth_successful": "Autenticação concluída com sucesso",
+            "unique_id_mismatch": "A identidade do equipamento não corresponde à configuração existente."
         },
         "error": {
             "cannot_connect": "Falha na ligação",
             "invalid_auth": "Falha na autenticação",
             "unsupported_device": "O servidor devolveu um equipamento não suportado.",
             "no_devices": "Não foram encontrados equipamentos nesta conta.",
+            "wrong_account": "Utilize a mesma conta da configuração existente.",
+            "reauth_device_not_found": "O equipamento Vaillant configurado já não consta nesta conta.",
             "unknown": "Erro desconhecido"
         },
         "step": {
@@ -24,6 +27,14 @@
                     "select_device": "Equipamento Vaillant"
                 },
                 "description": "Selecione o equipamento Vaillant que quer configurar."
+            },
+            "reauth_confirm": {
+                "title": "Autenticar novamente",
+                "description": "Inicie sessão novamente com a conta utilizada neste equipamento Vaillant.",
+                "data": {
+                    "username": "Utilizador",
+                    "password": "Password"
+                }
             }
         }
     }

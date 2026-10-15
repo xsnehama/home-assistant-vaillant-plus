@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 import logging
 from typing import Any
 
@@ -14,11 +15,10 @@ from vaillant_plus_cn_api import (
     InvalidCredentialsError,
     RequestError,
     Token,
-    VaillantApiClient,
 )
 import voluptuous as vol
 
-from .utils import get_aiohttp_session
+from .utils import VaillantApiClient, get_aiohttp_session
 from .const import (
     CONF_DID,
     CONF_PASSWORD,
@@ -108,6 +108,78 @@ class VaillantPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+        )
+
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> FlowResult:
+        """Reauthenticate the configured account without selecting another device."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Validate replacement credentials for the original device."""
+        entry = self._get_reauth_entry()
+        device_id = entry.data.get(CONF_DID) or entry.unique_id
+        username = entry.data.get(CONF_USERNAME)
+        if not username and entry.data.get(CONF_TOKEN):
+            try:
+                username = Token.deserialize(entry.data[CONF_TOKEN]).username
+            except (AttributeError, KeyError, TypeError, ValueError):
+                pass
+
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if username and user_input[CONF_USERNAME] != username:
+                errors["base"] = "wrong_account"
+            else:
+                client = VaillantApiClient(session=get_aiohttp_session(self.hass))
+                try:
+                    token = await client.login(
+                        user_input[CONF_USERNAME], user_input[CONF_PASSWORD]
+                    )
+                    devices = await client.get_device_list()
+                except (InvalidCredentialsError, InvalidAuthError):
+                    errors["base"] = "invalid_auth"
+                except (RequestError, ClientError, asyncio.TimeoutError):
+                    _LOGGER.exception("Cannot reach the Vaillant cloud")
+                    errors["base"] = "cannot_connect"
+                except (TypeError, KeyError, IndexError, AttributeError):
+                    _LOGGER.exception("The cloud returned an unsupported device")
+                    errors["base"] = "unsupported_device"
+                except Exception:
+                    _LOGGER.exception("Unexpected exception")
+                    errors["base"] = "unknown"
+                else:
+                    if not device_id or not any(
+                        device.id == device_id for device in devices
+                    ):
+                        errors["base"] = "reauth_device_not_found"
+                    else:
+                        await self.async_set_unique_id(
+                            device_id, raise_on_progress=False
+                        )
+                        self._abort_if_unique_id_mismatch()
+                        return self.async_update_reload_and_abort(
+                            entry,
+                            data_updates={
+                                CONF_USERNAME: user_input[CONF_USERNAME],
+                                CONF_PASSWORD: user_input[CONF_PASSWORD],
+                                CONF_TOKEN: token.serialize(),
+                            },
+                        )
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_USERNAME, default=username or vol.UNDEFINED
+                ): str,
+                vol.Required(CONF_PASSWORD): str,
+            }
+        )
+        return self.async_show_form(
+            step_id="reauth_confirm", data_schema=data_schema, errors=errors
         )
 
     async def async_step_select(

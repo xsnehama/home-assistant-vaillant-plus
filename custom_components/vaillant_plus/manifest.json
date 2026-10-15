@@ -2,14 +2,14 @@
   "domain": "vaillant_plus",
   "name": "Vaillant Plus",
   "codeowners": [
-    "@daxingplay"
+    "@xsnehama"
   ],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/daxingplay/home-assistant-vaillant-plus",
+  "documentation": "https://github.com/xsnehama/home-assistant-vaillant-plus",
   "homekit": {},
   "iot_class": "cloud_push",
-  "issue_tracker": "https://github.com/daxingplay/home-assistant-vaillant-plus/issues",
+  "issue_tracker": "https://github.com/xsnehama/home-assistant-vaillant-plus/issues",
   "loggers": [
     "vaillant_plus_cn_api"
   ],
@@ -17,6 +17,6 @@
     "vaillant-plus-cn-api==2.0.1"
   ],
   "ssdp": [],
-  "version": "1.4.0.post1",
+  "version": "1.4.0.post2",
   "zeroconf": []
 }

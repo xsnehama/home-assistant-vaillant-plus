@@ -1,6 +1,13 @@
 # Changelog
 
 <!--next-version-placeholder-->
+## v1.4.0.post2 (2026-10-15)
+* Keep a healthy websocket subscription during proactive authentication refresh and restore the normal refresh interval after successful recovery.
+* Add the Home Assistant reauthentication flow and unify authentication, network and exhausted-retry control errors.
+* Preserve numeric zero gas consumption; expose missing or invalid gas data through an empty value and Chinese status attributes without inferring a missing meter.
+* Keep existing gas names and unique IDs; leave units and statistics metadata unset until the protocol's units and scaling are verified.
+* Update maintenance ownership and support links to the Chinese fork while keeping the vaillant_plus domain.
+
 ## v1.4.0.post1 (2026-10-15)
 * Selectively incorporate upstream v1.4.0 fixes into the Chinese maintenance fork.
 * Discover entities from accumulated attributes on every gateway update and from the initial cache.

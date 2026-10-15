@@ -2,21 +2,23 @@
 > [!IMPORTANT]
 > ## 中文增强维护版说明
 >
-> 当前维护版：`1.4.0.post1`。已选择性合入上游 `v1.4.0` 的实体发现、标准开关服务、控制失败反馈、设备列表容错及诊断功能，API 依赖为 `2.0.1`。保留现有中文名称、实体唯一标识、主动 token 刷新、统计元数据和异常温度处理。
+> 当前维护版：`1.4.0.post2`。在选择性合入上游 `v1.4.0` 的基础上，修复主动认证刷新造成的短暂集体不可用、刷新间隔无法恢复、Home Assistant 重新认证入口和控制异常处理，正确保留燃气零消耗。API 依赖仍为 `2.0.1`，保留现有中文名称、实体唯一标识、统计元数据和异常温度处理。
 >
 > 本仓库是 [daxingplay/home-assistant-vaillant-plus](https://github.com/daxingplay/home-assistant-vaillant-plus) 的公开 Fork，遵循原项目的 Apache-2.0 许可证并保留原作者版权信息。本分支不是从零重写，而是在上游基础上，针对实际 Home Assistant 环境中影响日常使用的问题进行修复和增强。
 >
 > 相比上游，本分支目前包含以下关键改进：
 >
-> - **增强登录稳定性**：增加主动刷新令牌、认证失效后重新登录，以及 WebSocket 自动重连，降低长期运行后设备失联的概率。
+> - **增强登录稳定性**：主动刷新期间保留仍有效的订阅，认证异常时统一恢复或发起 Home Assistant 重新认证；成功后恢复正常刷新间隔，减少不必要的短暂离线。
 > - **修复实体可用性判断**：连接断开时实体会正确显示为不可用，避免把缓存的历史数据误认为实时状态。
 > - **修复二进制传感器状态**：按设备协议中的明确状态值判断开关状态，避免简单布尔转换造成误报。
 > - **改善数值统计兼容性**：运行时间、功率、转速等保持为真正的数值，并补充单位和状态类别，便于 Home Assistant 统计、图表及自动化比较。
+> - **正确处理燃气零值**：合法零消耗保留为数字 `0`，缺失或无效数据使用空值及中文状态属性；不再仅凭零值推断未接燃气计。燃气单位和比例尚未核实，因此没有新增燃气统计元数据。
+> - **统一控制失败反馈**：认证、网络及重试耗尽等控制失败均通过 Home Assistant 服务错误反馈。
 > - **完善诊断信息**：兼容更多诊断字段，补充常见故障码中文说明，并将“未接传感器”等情况作为状态属性表达。
 > - **修复生活热水温度显示**：过滤无效的水箱温度，在缺少有效读数时按目标温度和出水温度合理回退。
 > - **优化日志级别**：将高频调试信息降为 `debug`，保留真正需要关注的异常，减少日志膨胀和磁盘写入。
 >
-> 上述修改已在本 Fork 维护者自己的 Home Assistant 与威能设备环境中实际运行验证。不同设备型号、固件和区域服务可能存在差异，更新前请保留备份。
+> 不同设备型号、固件和区域服务可能存在差异，更新前请保留备份；实际部署核对结果以对应版本的部署记录为准。
 
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
@@ -46,9 +48,9 @@ Home Assistant custom component for controlling vSmart in Vaillant+ cn app.
 #### HACS
 Click the following link to add to your Home Assistant.
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=daxingplay&repository=home-assistant-vaillant-plus&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xsnehama&repository=home-assistant-vaillant-plus&category=integration)
 
-Or you can search for `Vaillant Plus` in your HACS.
+Add this fork as a custom HACS integration repository: `xsnehama/home-assistant-vaillant-plus`.
 
 #### Manual
 Copy `custom_components/vaillant_plus` into your Home Assistant `config` directory.

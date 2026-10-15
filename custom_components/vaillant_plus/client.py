@@ -54,13 +54,15 @@ class VaillantClient:
     ) -> None:
         self._hass = hass
         self._device_id = device_id
-        self._username = username
-        self._password = password
+        self._username = username or token.username
+        self._password = password or token.password
         self._device_attrs: dict[str, Any] = {}
         self._device: Device | None = None
         self._token = token
 
         self._api_client = VaillantApiClient(session=get_aiohttp_session(self._hass))
+        # Reuse the saved token before requesting another login.
+        self._api_client.update_token(token)
 
         self._websocket_client: VaillantWebsocketClient | None = None
 
@@ -95,6 +97,8 @@ class VaillantClient:
         )
 
     def _set_auth_state(self, state: AuthState) -> None:
+        if self._auth_state is AuthState.CLOSED and state is not AuthState.CLOSED:
+            return
         self._auth_state = state
         self._state = state.value
 
@@ -121,10 +125,14 @@ class VaillantClient:
         self._sleep_task = asyncio.create_task(asyncio.sleep(delay))
 
     async def _connect(self) -> None:
+        if self._auth_state is AuthState.CLOSED:
+            return
         self._set_auth_state(AuthState.CONNECTING)
         self._notify_state_changed()
 
         device_list = await self._api_client.get_device_list()
+        if self._auth_state is AuthState.CLOSED:
+            return
         filtered_device_list = [device for device in device_list if device.id == self._device_id]
         if len(filtered_device_list) == 0:
             raise ShouldUpdateConfigEntry
@@ -139,8 +147,13 @@ class VaillantClient:
             finally:
                 self._websocket_client = None
 
+        if self._auth_state is AuthState.CLOSED:
+            return
+
         @callback
         def device_connected(device_attrs: dict[str, Any]):
+            if self._auth_state is AuthState.CLOSED:
+                return
             self._device_attrs = device_attrs.copy()
             self._set_auth_state(AuthState.HEALTHY)
             self._reset_reconnect_delay()
@@ -150,6 +163,8 @@ class VaillantClient:
 
         @callback
         def device_update(event: str, data: dict[str, Any]):
+            if self._auth_state is AuthState.CLOSED:
+                return
             if event == EVT_DEVICE_ATTR_UPDATE:
                 device_attrs: dict[str, Any] = data.get("data", {})
                 if len(device_attrs) > 0:
@@ -173,10 +188,11 @@ class VaillantClient:
 
     async def _get_token(self) -> None:
         if not self._username or not self._password:
-            _LOGGER.error("Cannot refresh token: username/password not configured")
-            return
+            raise InvalidAuth("Cannot refresh token: username/password not configured")
         self._set_auth_state(AuthState.REFRESHING)
         token_new = await self._api_client.login(self._username, self._password)
+        if self._auth_state is AuthState.CLOSED:
+            return
         self._token = token_new
         self._api_client.update_token(token_new)
         self._token_last_refresh_monotonic = time.monotonic()
@@ -211,6 +227,8 @@ class VaillantClient:
     async def _refresh_token_and_reconnect(self) -> None:
         """Refresh token proactively and reconnect websocket with the new token."""
         async with self._refresh_lock:
+            if self._auth_state is AuthState.CLOSED:
+                return
             try:
                 await self._get_token()
             except Exception as error:
@@ -218,6 +236,8 @@ class VaillantClient:
                 _LOGGER.warning("Proactive token refresh failed: %s", error)
                 return
 
+            if self._auth_state is AuthState.CLOSED:
+                return
             if self._websocket_client is not None:
                 try:
                     await self._websocket_client.close()
@@ -226,6 +246,8 @@ class VaillantClient:
 
     def _schedule_token_refresh(self, delay_sec: int = TOKEN_REFRESH_INTERVAL) -> None:
         """Schedule the next proactive token refresh."""
+        if self._auth_state is AuthState.CLOSED:
+            return
         if self._token_refresh_handle is not None:
             self._token_refresh_handle.cancel()
 
@@ -255,8 +277,9 @@ class VaillantClient:
 
     async def start(self) -> None:
         """Start connection to cloud."""
+        if self._auth_state is AuthState.CLOSED:
+            return
         if self._token_refresh_handle is None:
-            await self._refresh_token_and_reconnect()
             self._schedule_token_refresh(self._token_refresh_interval - TOKEN_REFRESH_EARLY_MARGIN)
 
         while self._state != "CLOSED":
@@ -266,10 +289,16 @@ class VaillantClient:
                 self._mark_reauth_required()
                 await self._refresh_token_and_reconnect()
                 self._schedule_token_refresh(self._token_refresh_interval - TOKEN_REFRESH_EARLY_MARGIN)
+            except ShouldUpdateConfigEntry:
+                _LOGGER.error("Device not found, config entry needs update")
+                await self.close()
+                break
             except Exception as error:
                 _LOGGER.warning("Unhandled client exception: %s", error)
                 self._increase_reconnect_delay()
 
+            if self._auth_state is AuthState.CLOSED:
+                break
             self._schedule_reconnect_sleep()
             await self._sleep_task
 

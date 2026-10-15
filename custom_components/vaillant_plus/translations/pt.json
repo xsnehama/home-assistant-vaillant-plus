@@ -1,11 +1,14 @@
 {
     "config": {
         "abort": {
-            "already_configured": "Equipamento já configurado"
+            "already_configured": "Equipamento já configurado",
+            "reauth_successful": "Autenticação concluída com sucesso"
         },
         "error": {
             "cannot_connect": "Falha na ligação",
             "invalid_auth": "Falha na autenticação",
+            "unsupported_device": "O servidor devolveu um equipamento não suportado.",
+            "no_devices": "Não foram encontrados equipamentos nesta conta.",
             "unknown": "Erro desconhecido"
         },
         "step": {

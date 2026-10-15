@@ -1,6 +1,16 @@
 # Changelog
 
 <!--next-version-placeholder-->
+## v1.4.0.post1 (2026-10-15)
+* Selectively incorporate upstream v1.4.0 fixes into the Chinese maintenance fork.
+* Discover entities from accumulated attributes on every gateway update and from the initial cache.
+* Raise a Home Assistant error when control retries fail, and advertise climate and water-heater on/off services.
+* Require vaillant-plus-cn-api 2.0.1 and distinguish authentication, network and unsupported-device configuration errors.
+* Reuse the saved token on startup while preserving proactive refresh, refresh locking, reconnection backoff and actual subscription-state availability.
+* Add redacted diagnostics, the central-heating mode sensor and domestic-hot-water temperature-limit fallbacks.
+* Preserve existing entity names and unique IDs, numeric statistics, Chinese diagnostic mappings and invalid tank-temperature handling.
+* Require Home Assistant 2024.2 or later.
+
 ## v1.2.4 (2024-04-05)
 * [#13](https://github.com/daxingplay/home-assistant-vaillant-plus/issues/13) Support to disable IPv6 in this integration for Home Assistant version >= `2023.10.0`.
 * Add Github actions for more HA versions.

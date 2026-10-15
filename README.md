@@ -2,6 +2,8 @@
 > [!IMPORTANT]
 > ## 中文增强维护版说明
 >
+> 当前维护版：`1.4.0.post1`。已选择性合入上游 `v1.4.0` 的实体发现、标准开关服务、控制失败反馈、设备列表容错及诊断功能，API 依赖为 `2.0.1`。保留现有中文名称、实体唯一标识、主动 token 刷新、统计元数据和异常温度处理。
+>
 > 本仓库是 [daxingplay/home-assistant-vaillant-plus](https://github.com/daxingplay/home-assistant-vaillant-plus) 的公开 Fork，遵循原项目的 Apache-2.0 许可证并保留原作者版权信息。本分支不是从零重写，而是在上游基础上，针对实际 Home Assistant 环境中影响日常使用的问题进行修复和增强。
 >
 > 相比上游，本分支目前包含以下关键改进：

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -474,7 +475,7 @@ class VaillantSensorEntity(VaillantEntity, SensorEntity):
     ):
         super().__init__(client)
         self.entity_description = description
-        # Use description's unit if set; otherwise default to Celsius for backward compat
+        # Use only the unit declared by this sensor description.
         if description.native_unit_of_measurement:
             self._attr_native_unit_of_measurement = description.native_unit_of_measurement
 
@@ -489,14 +490,18 @@ class VaillantSensorEntity(VaillantEntity, SensorEntity):
 
     @staticmethod
     def _as_number(value: Any) -> int | float | None:
-        """Convert numeric API values while preserving integer counters."""
+        """Convert finite numeric API values while preserving integer counters."""
         if value is None or isinstance(value, bool):
             return None
-        if isinstance(value, (int, float)):
+        if isinstance(value, int):
             return value
+        if isinstance(value, float):
+            return value if math.isfinite(value) else None
         try:
             number = float(value)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not math.isfinite(number):
             return None
         return int(number) if number.is_integer() else number
 
@@ -594,12 +599,17 @@ class VaillantSensorEntity(VaillantEntity, SensorEntity):
         }:
             self._attr_native_value = self._as_number(value)
 
-        # --- Translate gas consumption (always zero = sensor not installed) ---
+        # --- Gas values have no verified unit, scaling or missing-meter sentinel. ---
         elif key.startswith("gas_") or key == "gas_consumption":
-            if value is None or value == 0 or value == "0" or str(value) == "00000000":
-                self._attr_native_value = "未接入燃气计"
+            self._attr_native_value = self._as_number(value)
+            if value is None:
+                self._attr_extra_state_attributes = {"状态": "未提供燃气数据"}
+            elif self._attr_native_value is None:
+                self._attr_extra_state_attributes = {"状态": "燃气数据无效"}
             else:
-                self._attr_native_value = value
+                self._attr_extra_state_attributes = None
+            self._attr_available = True
+            return
 
         else:
             self._attr_native_value = value

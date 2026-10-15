@@ -50,7 +50,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     device_id = entry.data.get(CONF_DID)
     username = entry.data.get(CONF_USERNAME)
     password = entry.data.get(CONF_PASSWORD)
-    client = VaillantClient(hass, token, device_id, username, password)
+
+    @callback
+    def on_auth_failed() -> None:
+        entry.async_start_reauth(hass)
+
+    client = VaillantClient(
+        hass, token, device_id, username, password, on_auth_failed=on_auth_failed
+    )
 
     async def close_client(_):
         await client.close()

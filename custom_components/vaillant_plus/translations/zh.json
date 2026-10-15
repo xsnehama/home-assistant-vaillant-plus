@@ -2,13 +2,16 @@
     "config": {
         "abort": {
             "already_configured": "设备已经注册",
-            "reauth_successful": "重新验证成功"
+            "reauth_successful": "重新验证成功",
+            "unique_id_mismatch": "设备标识与现有配置不一致，无法完成重新认证。"
         },
         "error": {
             "cannot_connect": "无法连接服务器",
             "invalid_auth": "验证失败",
             "unsupported_device": "服务器返回了无法识别的设备",
             "no_devices": "此账号下未找到设备",
+            "wrong_account": "请使用现有配置中的同一账号。",
+            "reauth_device_not_found": "此账号下已找不到原先配置的威能设备。",
             "unknown": "未知错误"
         },
         "step": {
@@ -24,6 +27,14 @@
                     "select_device": "威能设备"
                 },
                 "description": "选择威能壁挂炉完成设置"
+            },
+            "reauth_confirm": {
+                "title": "重新验证账号",
+                "description": "请重新登录此威能设备原先使用的账号。",
+                "data": {
+                    "username": "用户名",
+                    "password": "密码"
+                }
             }
         }
     }

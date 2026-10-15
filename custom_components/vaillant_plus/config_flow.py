@@ -1,14 +1,18 @@
 """Config flow for Vaillant Plus integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
+from aiohttp import ClientError
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.exceptions import HomeAssistantError
 from vaillant_plus_cn_api import (
     Device,
+    InvalidAuthError,
+    InvalidCredentialsError,
+    RequestError,
     Token,
     VaillantApiClient,
 )
@@ -25,10 +29,8 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# TODO adjust the data schema to the data that you need
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        # vol.Required("host"): str,
         vol.Required(CONF_USERNAME): str,
         vol.Required(CONF_PASSWORD): str,
     }
@@ -45,6 +47,8 @@ class VaillantPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._cloud_token: Token | None = None
         self._cloud_device_info: Device | None = None
         self._cloud_devices: dict[str, Device] = {}
+        self._username: str | None = None
+        self._password: str | None = None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -65,36 +69,42 @@ class VaillantPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             user_info = await client.login(
                 user_input[CONF_USERNAME], user_input[CONF_PASSWORD]
             )
+        except (InvalidCredentialsError, InvalidAuthError):
+            errors["base"] = "invalid_auth"
+        except (RequestError, ClientError, asyncio.TimeoutError):
+            _LOGGER.exception("Cannot reach the Vaillant cloud")
+            errors["base"] = "cannot_connect"
         except Exception:
             _LOGGER.exception("Unexpected exception")
-            errors["base"] = "invalid_auth"
+            errors["base"] = "unknown"
         else:
             self._cloud_token = user_info
             self._username = user_input[CONF_USERNAME]
             self._password = user_input[CONF_PASSWORD]
-            device_list = await client.get_device_list()
-            if len(device_list) == 0:
-                errors["base"] = "no_devices"
+            try:
+                device_list = await client.get_device_list()
+            except (InvalidCredentialsError, InvalidAuthError):
+                errors["base"] = "invalid_auth"
+            except (RequestError, ClientError, asyncio.TimeoutError):
+                _LOGGER.exception("Cannot reach the Vaillant cloud")
+                errors["base"] = "cannot_connect"
+            except (TypeError, KeyError, IndexError, AttributeError):
+                _LOGGER.exception("The cloud returned an unsupported device")
+                errors["base"] = "unsupported_device"
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
             else:
-                for device_info in device_list:
-                    product_name = device_info.product_name
-                    # mac_addr = device_info["mac"]
-                    device_id = device_info.id
-                    device_name = f"{product_name}_{device_id}"
-                    self._cloud_devices[device_name] = device_info
-                return await self.async_step_select()
-
-        # try:
-        #     info = await validate_input(self.hass, user_input)
-        # except CannotConnect:
-        #     errors["base"] = "cannot_connect"
-        # except InvalidAuth:
-        #     errors["base"] = "invalid_auth"
-        # except Exception:  # pylint: disable=broad-except
-        #     _LOGGER.exception("Unexpected exception")
-        #     errors["base"] = "unknown"
-        # else:
-        #     return self.async_create_entry(title=info["title"], data=user_input)
+                if not device_list:
+                    errors["base"] = "no_devices"
+                else:
+                    self._cloud_devices.clear()
+                    for device_info in device_list:
+                        product_name = device_info.product_name
+                        device_id = device_info.id
+                        device_name = f"{product_name}_{device_id}"
+                        self._cloud_devices[device_name] = device_info
+                    return await self.async_step_select()
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
@@ -118,6 +128,8 @@ class VaillantPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data = existing_entry.data.copy()
                 data[CONF_DID] = unique_id
                 data[CONF_TOKEN] = self._cloud_token.serialize()
+                data[CONF_USERNAME] = self._username
+                data[CONF_PASSWORD] = self._password
 
                 if self.hass.config_entries.async_update_entry(
                     existing_entry, data=data
@@ -142,11 +154,3 @@ class VaillantPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="select", data_schema=select_schema, errors=errors
         )
-
-
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
-
-
-class InvalidAuth(HomeAssistantError):
-    """Error to indicate there is invalid auth."""

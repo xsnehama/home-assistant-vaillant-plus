@@ -3,8 +3,10 @@ import logging
 from typing import Any
 
 from homeassistant.core import callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.entity import Entity, DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import Entity
 from vaillant_plus_cn_api import Device
 
 from .client import VaillantClient
@@ -60,7 +62,11 @@ class VaillantEntity(Entity):
     @property
     def available(self) -> bool:
         """Return True if the entity has device data from an active connection."""
-        return self._client.is_connected and bool(self.device_attrs)
+        return (
+            self._client.is_connected
+            and bool(self.device_attrs)
+            and self._attr_available
+        )
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -80,7 +86,12 @@ class VaillantEntity(Entity):
         """Update the entity from the latest data."""
 
     async def send_command(self, attr: str, value: Any) -> None:
-        """Send operations to cloud."""
-        await self._client.control_device({
-            f"{attr}": value
-        })
+        """Send one attribute to the cloud."""
+        await self.send_commands({attr: value})
+
+    async def send_commands(self, attrs: dict[str, Any]) -> None:
+        """Report commands that could not be delivered to the cloud."""
+        if not await self._client.control_device(attrs):
+            raise HomeAssistantError(
+                f"Failed to send {list(attrs)} to the Vaillant cloud"
+            )

@@ -1,12 +1,15 @@
 {
     "config": {
         "abort": {
-            "already_configured": "设备已经注册"
+            "already_configured": "设备已经注册",
+            "reauth_successful": "重新验证成功"
         },
         "error": {
             "cannot_connect": "无法连接服务器",
             "invalid_auth": "验证失败",
-            "unknown": "位置错误"
+            "unsupported_device": "服务器返回了无法识别的设备",
+            "no_devices": "此账号下未找到设备",
+            "unknown": "未知错误"
         },
         "step": {
             "user": {

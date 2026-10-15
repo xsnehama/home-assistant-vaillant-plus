@@ -12,18 +12,20 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    EntityCategory,
     REVOLUTIONS_PER_MINUTE,
+    SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     UnitOfPower,
+    UnitOfPressure,
     UnitOfTemperature,
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .client import VaillantClient
-from .const import CONF_DID, DISPATCHERS, DOMAIN, EVT_DEVICE_CONNECTED, API_CLIENT
+from .const import CONF_DID, DOMAIN, API_CLIENT
+from .discovery import async_register_discovery
 from .entity import VaillantEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -197,7 +199,7 @@ SENSOR_DESCRIPTIONS = (
         key="water_pressure",
         name="\u6c34\u538b",
         device_class=SensorDeviceClass.PRESSURE,
-        native_unit_of_measurement="bar",
+        native_unit_of_measurement=UnitOfPressure.BAR,
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -301,6 +303,11 @@ SENSOR_DESCRIPTIONS = (
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
+        key="Mode_Setting_CH",
+        name="\u91c7\u6696\u6a21\u5f0f\u8bbe\u7f6e",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
         key="Heating_System_Setting",
         name="\u91c7\u6696\u7cfb\u7edf\u8bbe\u7f6e",
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -343,7 +350,7 @@ SENSOR_DESCRIPTIONS = (
         key="WiFi_RSSI",
         name="Wi-Fi \u4fe1\u53f7\u5f3a\u5ea6",
         device_class=SensorDeviceClass.SIGNAL_STRENGTH,
-        native_unit_of_measurement="dBm",
+        native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -451,19 +458,7 @@ async def async_setup_entry(
         _LOGGER.debug("Adding %d sensor entities", len(entities))
         async_add_entities(entities)
 
-    # If device already has data (e.g. from a previous connection this session),
-    # add entities immediately during setup
-    if client.device_attrs:
-        _LOGGER.debug("Adding sensors from cached device attributes during setup")
-        initial_entities = _build_new_entities(client.device_attrs)
-        if initial_entities:
-            async_add_entities(initial_entities)
-
-    unsub = async_dispatcher_connect(
-        hass, EVT_DEVICE_CONNECTED.format(device_id), async_new_entities
-    )
-
-    hass.data[DOMAIN][DISPATCHERS][device_id].append(unsub)
+    async_register_discovery(hass, device_id, client, async_new_entities)
 
     return True
 

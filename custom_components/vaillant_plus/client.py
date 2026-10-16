@@ -128,6 +128,8 @@ class VaillantClient:
         def expire() -> None:
             self._reconnect_grace_handle = None
             self._reconnect_grace_until = None
+            if self._stopped.is_set():
+                return
             _LOGGER.info("Vaillant reconnect availability grace expired (source=%s)", source)
             self._notify_state_changed()
 
@@ -167,6 +169,7 @@ class VaillantClient:
                     _LOGGER.debug("Websocket cleanup failed (%s)", type(error).__name__)
 
     async def _stop_connections(self) -> None:
+        self._end_reconnect_grace()
         active = self._websocket_client, self._websocket_task
         pending = self._pending_websocket, self._pending_task
         self._websocket_client = self._websocket_task = self._websocket_token = None

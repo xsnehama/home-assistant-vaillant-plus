@@ -1,6 +1,9 @@
 # Changelog
 
 <!--next-version-placeholder-->
+## v1.4.0.post8 (2026-10-16)
+* Cancel reconnect availability grace during connection teardown and ignore late expiry callbacks after shutdown.
+
 ## v1.4.0.post7 (2026-10-16)
 * Keep reconnect grace separate from the live-subscription check so a stale grace window cannot suppress reconnection.
 

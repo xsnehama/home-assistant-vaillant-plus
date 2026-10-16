@@ -24,6 +24,8 @@
 - `no artifact for this period: 2026-07-04 to 2026-09-01`：未恢复期间每次中间修改和部署顺序。
 - `no artifact for this period: 2026-09-01 to 2026-10-15`：未恢复当前 1.2.5 定制树形成前的中间修改和部署顺序。
 
-当前实测依赖：Home Assistant `2026.10.1`，`vaillant-plus-cn-api 2.0.1`。旧快照只有 manifest 声明的依赖，未将当前 HA 版本冒充成历史运行版本。涉及 `utils.py` 的库私有方法和 HA 兼容分支时，应结合提交内依赖说明审阅。
+当前部署依赖：Home Assistant `2026.10.1`，`vaillant-plus-cn-api` 使用 fork `xsnehama/vaillant-plus-cn-api` 的 `v2.1.2`（提交 `5f9b107`）。旧快照只有 manifest 声明的依赖，未将当前 HA 版本冒充成历史运行版本。涉及 `utils.py` 的库私有方法和 HA 兼容分支时，应结合提交内依赖说明审阅。
+
+上游同步记录：上游 `da2fdf8`（diagnostics 中报告 product family）不是当前维护分支的祖先；其 `platform` 和 `sub_product_key` 字段已在当前重写版 `diagnostics.py` 中保留。后续同步应以字段行为比对，不要直接覆盖该文件。
 
 原始 diff（591 行、2300 行）保留在 NAS `/root`，另存私有副本 `/root/vaillant-evidence-20261015`。本仓库提交哈希和来源清单，原始 diff 不用来替代完整源码快照。所有已存在的备份均保留。

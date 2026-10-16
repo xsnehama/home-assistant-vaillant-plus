@@ -51,6 +51,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     username = entry.data.get(CONF_USERNAME)
     password = entry.data.get(CONF_PASSWORD)
 
+    serialized_token = token.serialize()
+    if entry.data.get(CONF_TOKEN) != serialized_token:
+        hass.config_entries.async_update_entry(
+            entry, data={**entry.data, CONF_TOKEN: serialized_token}
+        )
+
     @callback
     def on_auth_failed() -> None:
         entry.async_start_reauth(hass)

@@ -1,6 +1,10 @@
 # Changelog
 
 <!--next-version-placeholder-->
+## v1.4.0.post5 (2026-10-16)
+* Stop duplicating the password inside newly serialized API tokens while continuing to read older token payloads.
+* Normalize legacy token payloads when the config entry is loaded.
+
 ## v1.4.0.post4 (2026-10-16)
 * Include exception details and tracebacks when refresh or websocket recovery fails.
 * Forward device event websocket frames through the forked `vaillant-plus-cn-api` dependency.

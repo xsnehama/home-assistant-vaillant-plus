@@ -13,11 +13,11 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from vaillant_plus_cn_api import (
-    EVT_DEVICE_ATTR_UPDATE, Device, InvalidAuthError, InvalidCredentialsError,
+    EVT_DEVICE_ATTR_UPDATE, EVT_DEVICE_EVENT, Device, InvalidAuthError, InvalidCredentialsError,
     RequestError, Token, VaillantWebsocketClient,
 )
 from .utils import VaillantApiClient, get_aiohttp_session
-from .const import EVT_DEVICE_CONNECTED, EVT_DEVICE_UPDATED, EVT_TOKEN_UPDATED
+from .const import EVT_DEVICE_CONNECTED, EVT_DEVICE_EVENT as HA_EVT_DEVICE_EVENT, EVT_DEVICE_UPDATED, EVT_TOKEN_UPDATED
 
 _LOGGER = logging.getLogger(__name__)
 TOKEN_REFRESH_INTERVAL = 45 * 60
@@ -169,7 +169,17 @@ class VaillantClient:
 
             @callback
             def device_update(event: str, data: dict[str, Any]) -> None:
-                if self._stopped.is_set() or event != EVT_DEVICE_ATTR_UPDATE:
+                if self._stopped.is_set():
+                    return
+                if event == EVT_DEVICE_EVENT:
+                    _LOGGER.info("Received Vaillant device event: %s", data.get("data", {}))
+                    async_dispatcher_send(
+                        self._hass,
+                        HA_EVT_DEVICE_EVENT.format(self._device_id),
+                        data.copy(),
+                    )
+                    return
+                if event != EVT_DEVICE_ATTR_UPDATE:
                     return
                 attrs = data.get("data", {})
                 candidate_attrs.update(attrs)

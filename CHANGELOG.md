@@ -1,6 +1,10 @@
 # Changelog
 
 <!--next-version-placeholder-->
+## v1.4.0.post4 (2026-10-16)
+* Include exception details and tracebacks when refresh or websocket recovery fails.
+* Forward device event websocket frames through the forked `vaillant-plus-cn-api` dependency.
+
 ## v1.4.0.post3 (2026-10-15)
 * Key the dispatcher bookkeeping and the token-update signal by `entry.entry_id`, so a second config entry can no longer unsubscribe the first entry's handles.
 * Take entity unique IDs, device identifiers and the device-update subscription from the configured device id, and omit device name/model until the cloud device object resolves.

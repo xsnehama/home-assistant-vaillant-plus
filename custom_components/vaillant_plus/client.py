@@ -104,15 +104,17 @@ class VaillantClient:
         """A refreshing token does not invalidate a live subscription."""
         if self._stopped.is_set():
             return False
-        active = (self._websocket_client is not None
-                  and self._websocket_client.state == "subscribed"
-                  and self._websocket_task is not None
-                  and not self._websocket_task.done())
-        if active:
+        if self._has_live_subscription():
             return True
         return (self._reconnect_grace_until is not None
                 and time.monotonic() < self._reconnect_grace_until
                 and bool(self._device_attrs))
+
+    def _has_live_subscription(self) -> bool:
+        return (self._websocket_client is not None
+                and self._websocket_client.state == "subscribed"
+                and self._websocket_task is not None
+                and not self._websocket_task.done())
 
     def _begin_reconnect_grace(self, source: str) -> None:
         """Keep entities available briefly while replacing a live socket."""
@@ -177,9 +179,9 @@ class VaillantClient:
         async with self._connect_lock:
             if self._stopped.is_set():
                 return
-            if self.is_connected and self._websocket_token is self._token:
+            if self._has_live_subscription() and self._websocket_token is self._token:
                 return
-            if not self.is_connected:
+            if not self._has_live_subscription():
                 _LOGGER.info(
                     "Vaillant connection inactive before replacement; old_websocket_state=%s",
                     getattr(self._websocket_client, "state", None),

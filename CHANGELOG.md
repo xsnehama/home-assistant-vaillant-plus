@@ -1,6 +1,9 @@
 # Changelog
 
 <!--next-version-placeholder-->
+## v1.4.0.post7 (2026-10-16)
+* Keep reconnect grace separate from the live-subscription check so a stale grace window cannot suppress reconnection.
+
 ## v1.4.0.post6 (2026-10-16)
 * Keep entities available for up to 10 seconds while replacing an existing websocket subscription.
 * Log the old websocket state at reconnect boundaries and add a formal config entry migration for token serialization.

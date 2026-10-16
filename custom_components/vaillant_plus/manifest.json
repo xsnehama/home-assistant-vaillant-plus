@@ -17,6 +17,6 @@
     "vaillant-plus-cn-api @ git+https://github.com/xsnehama/vaillant-plus-cn-api.git@5f9b1078ed27e7a3fc535265b40da3d438ead785"
   ],
   "ssdp": [],
-  "version": "1.4.0.post6",
+  "version": "1.4.0.post7",
   "zeroconf": []
 }

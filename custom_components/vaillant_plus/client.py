@@ -325,7 +325,12 @@ class VaillantClient:
             raise
         except Exception as error:
             delay = TOKEN_REFRESH_RETRY_DELAY
-            _LOGGER.warning("Proactive authentication refresh failed (%s)", type(error).__name__)
+            _LOGGER.warning(
+                "Proactive authentication refresh failed (%s): %s",
+                type(error).__name__,
+                error,
+                exc_info=True,
+            )
         finally:
             self._schedule_token_refresh(delay)
 
@@ -370,7 +375,12 @@ class VaillantClient:
                     await self.close()
                     break
                 except Exception as error:
-                    _LOGGER.warning("Vaillant connection failed (%s)", type(error).__name__)
+                    _LOGGER.warning(
+                        "Vaillant connection failed (%s): %s",
+                        type(error).__name__,
+                        error,
+                        exc_info=True,
+                    )
                 if self._stopped.is_set():
                     break
                 try:

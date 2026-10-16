@@ -1,6 +1,10 @@
 # Changelog
 
 <!--next-version-placeholder-->
+## v1.4.0.post6 (2026-10-16)
+* Keep entities available for up to 10 seconds while replacing an existing websocket subscription.
+* Log the old websocket state at reconnect boundaries and add a formal config entry migration for token serialization.
+
 ## v1.4.0.post5 (2026-10-16)
 * Stop duplicating the password inside newly serialized API tokens while continuing to read older token payloads.
 * Normalize legacy token payloads when the config entry is loaded.

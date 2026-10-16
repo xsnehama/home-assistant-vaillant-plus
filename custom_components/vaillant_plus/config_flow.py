@@ -40,7 +40,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 class VaillantPlusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Vaillant Plus."""
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize."""

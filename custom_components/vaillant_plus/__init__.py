@@ -44,18 +44,26 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate legacy token payloads to the current serialized format."""
+    if entry.version >= 2:
+        return True
+    try:
+        token = Token.deserialize(entry.data[CONF_TOKEN])
+        data = {**entry.data, CONF_TOKEN: token.serialize()}
+    except (KeyError, TypeError, ValueError) as error:
+        _LOGGER.error("Unable to migrate Vaillant config entry token: %s", error)
+        return False
+    hass.config_entries.async_update_entry(entry, data=data, version=2)
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Vaillant Plus from a config entry."""
     token = Token.deserialize(entry.data.get(CONF_TOKEN))
     device_id = entry.data.get(CONF_DID)
     username = entry.data.get(CONF_USERNAME)
     password = entry.data.get(CONF_PASSWORD)
-
-    serialized_token = token.serialize()
-    if entry.data.get(CONF_TOKEN) != serialized_token:
-        hass.config_entries.async_update_entry(
-            entry, data={**entry.data, CONF_TOKEN: serialized_token}
-        )
 
     @callback
     def on_auth_failed() -> None:

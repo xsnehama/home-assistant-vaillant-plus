@@ -26,6 +26,7 @@ TOKEN_REFRESH_RETRY_DELAY = 60
 TOKEN_RECONNECT_BASE_DELAY = 5
 TOKEN_RECONNECT_MAX_DELAY = 5 * 60
 WEBSOCKET_SUBSCRIBE_TIMEOUT = 30
+RECONNECT_AVAILABILITY_GRACE = 10
 
 
 class AuthState(Enum):
@@ -73,6 +74,8 @@ class VaillantClient:
         self._token_last_refresh_monotonic: float | None = None
         self._stable_refreshes = 0
         self._reauth_started = False
+        self._reconnect_grace_until: float | None = None
+        self._reconnect_grace_handle: asyncio.TimerHandle | None = None
 
     @property
     def device(self) -> Device | None:
@@ -99,11 +102,42 @@ class VaillantClient:
     @property
     def is_connected(self) -> bool:
         """A refreshing token does not invalidate a live subscription."""
-        return (not self._stopped.is_set()
-                and self._websocket_client is not None
-                and self._websocket_client.state == "subscribed"
-                and self._websocket_task is not None
-                and not self._websocket_task.done())
+        if self._stopped.is_set():
+            return False
+        active = (self._websocket_client is not None
+                  and self._websocket_client.state == "subscribed"
+                  and self._websocket_task is not None
+                  and not self._websocket_task.done())
+        if active:
+            return True
+        return (self._reconnect_grace_until is not None
+                and time.monotonic() < self._reconnect_grace_until
+                and bool(self._device_attrs))
+
+    def _begin_reconnect_grace(self, source: str) -> None:
+        """Keep entities available briefly while replacing a live socket."""
+        if not self._device_attrs or self._stopped.is_set():
+            return
+        self._reconnect_grace_until = time.monotonic() + RECONNECT_AVAILABILITY_GRACE
+        if self._reconnect_grace_handle is not None:
+            self._reconnect_grace_handle.cancel()
+
+        @callback
+        def expire() -> None:
+            self._reconnect_grace_handle = None
+            self._reconnect_grace_until = None
+            _LOGGER.info("Vaillant reconnect availability grace expired (source=%s)", source)
+            self._notify_state_changed()
+
+        self._reconnect_grace_handle = self._hass.loop.call_later(
+            RECONNECT_AVAILABILITY_GRACE, expire
+        )
+
+    def _end_reconnect_grace(self) -> None:
+        if self._reconnect_grace_handle is not None:
+            self._reconnect_grace_handle.cancel()
+            self._reconnect_grace_handle = None
+        self._reconnect_grace_until = None
 
     def _set_auth_state(self, state: AuthState) -> None:
         if self._auth_state is AuthState.CLOSED and state is not AuthState.CLOSED:
@@ -146,6 +180,11 @@ class VaillantClient:
             if self.is_connected and self._websocket_token is self._token:
                 return
             if not self.is_connected:
+                _LOGGER.info(
+                    "Vaillant connection inactive before replacement; old_websocket_state=%s",
+                    getattr(self._websocket_client, "state", None),
+                )
+                self._begin_reconnect_grace("connect")
                 self._set_auth_state(AuthState.CONNECTING)
                 self._notify_state_changed()
             if self._device is None:
@@ -210,6 +249,7 @@ class VaillantClient:
                 old = self._websocket_client, self._websocket_task
                 self._websocket_client, self._websocket_task = websocket, task
                 self._websocket_token = token
+                self._end_reconnect_grace()
                 self._device_attrs.update(candidate_attrs)
                 self._pending_websocket = self._pending_task = None
                 self._set_auth_state(AuthState.HEALTHY)
@@ -364,6 +404,11 @@ class VaillantClient:
                     if task is not self._websocket_task:
                         continue
                     websocket = self._websocket_client
+                    _LOGGER.info(
+                        "Vaillant websocket supervisor clearing active slot; old_websocket_state=%s",
+                        getattr(websocket, "state", None),
+                    )
+                    self._begin_reconnect_grace("supervisor")
                     self._websocket_client = self._websocket_task = self._websocket_token = None
                     self._set_auth_state(AuthState.CONNECTING)
                     self._notify_state_changed()
@@ -410,6 +455,7 @@ class VaillantClient:
         if self._token_refresh_handle is not None:
             self._token_refresh_handle.cancel()
             self._token_refresh_handle = None
+        self._end_reconnect_grace()
         task = self._token_refresh_task
         if task is not None and task is not asyncio.current_task():
             task.cancel()
